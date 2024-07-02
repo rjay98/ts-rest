@@ -1,3 +1,4 @@
+import { extractOpenApiComponents } from './ts-rest-open-api-automatic-components';
 import { initContract } from '@ts-rest/core';
 import { z } from 'zod';
 import { generateOpenApi } from './ts-rest-open-api';
@@ -75,7 +76,7 @@ const postsRouter = c.router({
       commentId: z.string().length(5).describe('the comment ID'),
     }),
     responses: {
-      200: c.type<Post | null>(),
+      200: commentSchema,
     },
   },
   auth: {
@@ -436,6 +437,22 @@ const expectedApiDoc = {
         ],
         responses: {
           '200': {
+            content: {
+              'application/json': {
+                schema: {
+                  properties: {
+                    id: {
+                      type: 'number',
+                    },
+                    title: {
+                      type: 'string',
+                    },
+                  },
+                  required: ['id', 'title'],
+                  type: 'object',
+                },
+              },
+            },
             description: '200',
           },
         },
@@ -1094,6 +1111,42 @@ describe('ts-rest-open-api', () => {
             },
           },
         },
+      });
+    });
+  });
+
+  describe('extractOpenApiComponents', () => {
+    it('should extract components from the openapi doc', async () => {
+      const apiDoc = generateOpenApi(router, {
+        info: { title: 'Blog API', version: '0.1' },
+      });
+
+      const spec = extractOpenApiComponents(apiDoc);
+
+      expect(spec.components).toBeTruthy();
+    });
+
+    it('Should extract comment schema', async () => {
+      const apiDoc = generateOpenApi(router, {
+        info: { title: 'Blog API', version: '0.1' },
+      });
+
+      const spec = extractOpenApiComponents(apiDoc);
+
+      expect(
+        spec.components?.schemas?.['Posts.One.Comments.One'],
+      ).toMatchObject({
+        properties: {
+          id: {
+            type: 'number',
+          },
+          title: {
+            type: 'string',
+          },
+        },
+        required: ['id', 'title'],
+        type: 'object',
+        $id: 'Posts.One.Comments.One',
       });
     });
   });
